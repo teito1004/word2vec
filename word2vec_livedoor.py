@@ -11,7 +11,7 @@ class livedoor_w2v:
     def __init__(self,file_name,id):
         self.fn_in = [self.make_path(['./livedoor-news-data','{}.xml'.format(file_name[i])]) for i in np.arange(len(file_name))]
         self.fn_out = [self.make_path(['./livedoor-news-data-wakati','{}.xml'.format(file_name[i])]) for i in np.arange(len(file_name))]
-        self.fn_model = [self.make_path(['./livedoor-news-data-model','{}.model'.format(file_name[i])]) for i in np.arange(len(file_name))]
+        self.fn_model = self.make_path(['./livedoor-news-data-model','word2vec.model'])
         self.id = id
 
     def wakati(self,file_name_in,file_name_out):#分かち書きに変換して保存する
@@ -29,12 +29,10 @@ class livedoor_w2v:
         fo.close()
 
     def w2v_train(self):#word2vecを学習する
-        for i in np.arange(self.id):
-            print('ID Number:{}'.format(id))
-            logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s',level = logging.INFO)
-            sentences = word2vec.LineSentence(self.fn_out[i])
-            model = word2vec.Word2Vec(sentences,sg = 1,size = 100,min_count = 1,window = 10,hs = 1,negative = 0)
-            model.save(self.fn_model[i])
+        logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s',level = logging.INFO)
+        sentences = word2vec.PathLineSentences('./livedoor-news-data-wakati')
+        model = word2vec.Word2Vec(sentences,sg = 1,size = 100,min_count = 1,window = 10,hs = 1,negative = 0)
+        model.save(self.fn_model)
 
     #def mean_w2v(self):#すべての単語についてベクトルを出力し、平均を求める
 
