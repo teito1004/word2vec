@@ -6,10 +6,12 @@ import numpy as np
 from gensim.models import word2vec
 import logging
 import os
+import xml.etree.ElementTree as ET
 
 class livedoor_w2v:
     def __init__(self,file_name,id):
         self.fn_in = [self.make_path(['./livedoor-news-data','{}.xml'.format(file_name[i])]) for i in np.arange(len(file_name))]
+        self.fn_in_txt = [self.make_path(['./livedoor-news-data-txt','{}.txt'.format(file_name[i])]) for i in np.arange(len(file_name))]
         self.fn_out = [self.make_path(['./livedoor-news-data-wakati','{}.xml'.format(file_name[i])]) for i in np.arange(len(file_name))]
         self.fn_model = self.make_path(['./livedoor-news-data-model','word2vec.model'])
         self.id = id
@@ -44,22 +46,38 @@ class livedoor_w2v:
             path[i+1] = os.path.join(path[i],path[i+1])
         return path[len(path)-1]
 
+    def xml_shaping(self,input,output):#xmlから記事内容のみを抽出したものを保存する
+        tree = ET.parse(input)
+        root = tree.getroot()
+        text = []
+        for i in np.arange(len(root)):
+            str_array = np.array([root[i][ind].text for ind in np.arange(3,len(root[i]))])
+            str_array = np.delete(str_array,np.where(str_array == None))
+            str_df = pd.DataFrame(str_array)
+            url_ind = np.where(str_df[0].str.contains('http').values)
+            str_list = list(np.delete(str_array,url_ind))
+            text.append(str_list)
+        f = open(output,'w')
+
+        for c in text:
+            for bff in c:
+                f.write(bff)
+            f.write('\n')
+        f.close()
+
 if __name__ =="__main__":
     #ファイル名をまとめているテキストからファイル名を読み出す
     f = open('file_name.txt','r')
     #ファイル名がすべて接続されて居るので区切り文字を指定してファイル名ごとに分ける
     lines = f.readlines()
     fn = [line.strip() for line in lines]
-    print(fn)
     #オブジェクト作成
     w2v = livedoor_w2v(fn,len(fn))
-
-    print(w2v.id)
     for i in np.arange(w2v.id):
-        print(i)
-        print(w2v.fn_in[i])
-        print(w2v.fn_out[i])
+        print("inputfile:{}".format(w2v.fn_in[i]))
+        print("outputfile:{}".format(w2v.fn_out[i]))
         w2v.wakati(w2v.fn_in[i],w2v.fn_out[i])
-
     w2v.w2v_train()
 
+    for i in np.arange(w2v.id):
+        w2v.xml_shaping(w2v.fn_in[i],w2v.fn_in_txt[i])
