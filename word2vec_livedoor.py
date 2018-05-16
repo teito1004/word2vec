@@ -38,7 +38,15 @@ class livedoor_w2v:
 
     def mean_w2v(self):#すべての単語についてベクトルを出力し、平均を求める
         model = word2vec.Word2Vec.load(self.fn_model)
-        self.word_vec = np.mean(np.array([model.mv[word] for word in self.dic]),axis=0)
+        word_vec = np.array([model.wv[self.dic[0]]])
+        pdb.set_trace()
+        for i in np.arange(1,len(self.dic)):
+            word_vec = np.vstack([word_vec,model.wv[self.dic[i]].reshape(1,100)])
+
+        pdb.set_trace()
+        self.word_vec_ave = np.mean(word_vec,axis=0)
+        
+        #self.word_vec = np.mean(np.array([model.wv[word] for word in self.dic]),axis=0)
 
     def make_path(self,path):#パスの作成(引数pathリストに入っているものを接続する)
         if not os.path.exists(path[0]):
@@ -67,8 +75,10 @@ class livedoor_w2v:
             f.write('\n')
         f.close()
 
-    def make_dic(self,input_file,dic_file):#辞書データ読み込み,追加,作成,更新
+    def make_dic(self,input_file,dic_file,flag):#辞書データ読み込み,追加,作成,更新
         mecab = MeCab.Tagger("-Ochasen")
+        if not os.path.isdir('data'):
+            os.makedirs('data')
         #辞書データが作られて居なければ書き込みモードで起動してデータの入れ物を作成
         if not os.path.isfile(dic_file):
             f = open(dic_file,'w')
@@ -77,47 +87,63 @@ class livedoor_w2v:
             f = open(dic_file,'r')
             self.dic = f.read().split('\n')
         f.close()
+        pdb.set_trace()
 
-        #xmlを整形して作ったtxtから単語を読み出す
-        f_in = open(input_file,'r')
-        word = []
-        buf = f_in.read().split('\n')
-        for x in buf
-            mor = mecab.parse(x).split('\n')
-            for w in mor:
-                word.append(w.split('\t')[0])
-        f_in.close()
-        #辞書データの中にwordが含まれて居なかったら追加
-        df = pd.DataFrame(self.dic)
-        for i in len(word):
-            if np.sum(df[0].str.contains(word[i]).values) == 0:
-                self.dic.append(word[i])
-        #辞書データを改行区切りで書き出す
-        f_dict = open(dic_file,'w')
-        for x in self.dic:
-            f_dict.write(x + '\n')
-        f_dict.close()
+        if flag:
+            #xmlを整形して作ったtxtから単語を読み出す
+            f_in = open(input_file,'r')
+            word = []
+            buf = f_in.read().split('\n')
+            for x in buf:
+                mor = mecab.parse(x).split('\n')
+                for w in mor:
+                    if word == []:
+                        word = list(w.split('\t')[0])
+                    else:
+                        word.append(w.split('\t')[0])
+            f_in.close()
+            count = 0
+            #辞書データの中にwordが含まれて居なかったら追加
+            for x in word:
+                if count % 2000 == 0:
+                    print('step{}/{}'.format(count,len(word)))
+
+                if self.dic == []:
+                    self.dic = list(x)
+                else:
+                    df = pd.DataFrame(self.dic)
+                    if np.sum((df[0] == x).values) == 0:
+                        self.dic.append(x)
+                count+=1
+            #辞書データを改行区切りで書き出す
+            f_dict = open(dic_file,'w')
+            for x in self.dic:
+                f_dict.write(x + '\n')
+            f_dict.close()
 
 if __name__ =="__main__":
+    Data_flag = (sys.argv[1]=='True')
+    train_flag = (sys.argv[2]=='True')
     #ファイル名をまとめているテキストからファイル名を読み出す
     f = open('file_name.txt','r')
     #ファイル名がすべて接続されて居るので区切り文字を指定してファイル名ごとに分ける
     lines = f.readlines()
     fn = [line.strip() for line in lines]
+    dic_path = './data/dict.txt'
     #オブジェクト作成
     w2v = livedoor_w2v(fn,len(fn))
-    for i in np.arange(w2v.id):
-        print("inputfile:{}".format(w2v.fn_in[i]))
-        print("outputfile:{}".format(w2v.fn_out[i]))
-        w2v.wakati(w2v.fn_in[i],w2v.fn_out[i])
-    w2v.w2v_train()
+    if Data_flag:
+        for i in np.arange(w2v.id):
+            print("inputfile:{}".format(w2v.fn_in[i]))
+            print("outputfile:{}".format(w2v.fn_out[i]))
+            w2v.wakati(w2v.fn_in[i],w2v.fn_out[i])
+            w2v.xml_shaping(w2v.fn_in[i],w2v.fn_in_txt[i])
+            w2v.make_dic(w2v.fn_in_txt[i],dic_path,Data_flag)
+    else:
+        w2v.make_dic(w2v.fn_in_txt[0],dic_path,Data_flag)
 
-    for i in np.arange(w2v.id):
-        w2v.xml_shaping(w2v.fn_in[i],w2v.fn_in_txt[i])
-
-    dic_path = './data/dict.txt'
-    for i in np.arange(w2v.id):
-        w2v.make_dic(w2v.fn_in_txt[i],dic_path)
+    if train_flag:
+        w2v.w2v_train()
 
     w2v.mean_w2v()
 
