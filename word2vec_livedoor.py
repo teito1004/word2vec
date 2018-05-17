@@ -17,14 +17,17 @@ class livedoor_w2v:
         self.id = id
 
     def wakati(self,file_name_in,file_name_out):#分かち書きに変換して保存する
-        tagger = MeCab.Tagger('-F\s%f[6] -U\s%m -E\\n')
+        tagger = MeCab.Tagger('-Ochasen')
         fi = open(file_name_in,'r')
         fo = open(file_name_out,'w')
 
         line = fi.readline()
         while line:
-            result = tagger.parse(line)
-            fo.write(result[1:])
+            word = tagger.parse(line).split('\n')
+            result = [x.split('\t')[0] for x in word]
+            for x in result:
+                fo.write(x + ' ')
+            fo.write('\n')
             line = fi.readline()
 
         fi.close()
@@ -39,11 +42,13 @@ class livedoor_w2v:
     def mean_w2v(self):#すべての単語についてベクトルを出力し、平均を求める
         model = word2vec.Word2Vec.load(self.fn_model)
         word_vec = np.array([model.wv[self.dic[0]]])
-        pdb.set_trace()
         for i in np.arange(1,len(self.dic)):
-            word_vec = np.vstack([word_vec,model.wv[self.dic[i]].reshape(1,100)])
+            try:
+                word_vec = np.vstack([word_vec,model.wv[self.dic[i]].reshape(1,100)])
+            except:
+                print('word_vec_ERROR! errorWord : {}'.format(self.dic[i]))
+                continue
 
-        pdb.set_trace()
         self.word_vec_ave = np.mean(word_vec,axis=0)
         
         #self.word_vec = np.mean(np.array([model.wv[word] for word in self.dic]),axis=0)
@@ -77,6 +82,7 @@ class livedoor_w2v:
 
     def make_dic(self,input_file,dic_file,flag):#辞書データ読み込み,追加,作成,更新
         mecab = MeCab.Tagger("-Ochasen")
+        skip_strList = [' ','','　']
         if not os.path.isdir('data'):
             os.makedirs('data')
         #辞書データが作られて居なければ書き込みモードで起動してデータの入れ物を作成
@@ -87,7 +93,6 @@ class livedoor_w2v:
             f = open(dic_file,'r')
             self.dic = f.read().split('\n')
         f.close()
-        pdb.set_trace()
 
         if flag:
             #xmlを整形して作ったtxtから単語を読み出す
@@ -105,8 +110,11 @@ class livedoor_w2v:
             count = 0
             #辞書データの中にwordが含まれて居なかったら追加
             for x in word:
-                if count % 2000 == 0:
-                    print('step{}/{}'.format(count,len(word)))
+                if x in skip_strList:
+                    continue
+
+                if count % 10000 == 0:
+                    print('word:{}/{}'.format(count,len(word)))
 
                 if self.dic == []:
                     self.dic = list(x)
@@ -122,8 +130,9 @@ class livedoor_w2v:
             f_dict.close()
 
 if __name__ =="__main__":
-    Data_flag = (sys.argv[1]=='True')
-    train_flag = (sys.argv[2]=='True')
+    Data_flag = (sys.argv[1]=='T')
+    dict_flag = (sys.argv[2]=='T')
+    train_flag = (sys.argv[3]=='T')
     #ファイル名をまとめているテキストからファイル名を読み出す
     f = open('file_name.txt','r')
     #ファイル名がすべて接続されて居るので区切り文字を指定してファイル名ごとに分ける
@@ -136,11 +145,12 @@ if __name__ =="__main__":
         for i in np.arange(w2v.id):
             print("inputfile:{}".format(w2v.fn_in[i]))
             print("outputfile:{}".format(w2v.fn_out[i]))
-            w2v.wakati(w2v.fn_in[i],w2v.fn_out[i])
             w2v.xml_shaping(w2v.fn_in[i],w2v.fn_in_txt[i])
-            w2v.make_dic(w2v.fn_in_txt[i],dic_path,Data_flag)
+            w2v.wakati(w2v.fn_in_txt[i],w2v.fn_out[i])
+            if dict_flag:
+                w2v.make_dic(w2v.fn_in_txt[i],dic_path,Data_flag)
     else:
-        w2v.make_dic(w2v.fn_in_txt[0],dic_path,Data_flag)
+        w2v.make_dic(w2v.fn_in_txt[0],dic_path,False)
 
     if train_flag:
         w2v.w2v_train()
