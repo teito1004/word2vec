@@ -7,6 +7,7 @@ from gensim.models import word2vec
 import logging
 import os
 import xml.etree.ElementTree as ET
+import pickle as pk
 
 class livedoor_w2v:
     def __init__(self,file_name,id):
@@ -156,5 +157,6 @@ if __name__ =="__main__":
         w2v.w2v_train()
 
     w2v.mean_w2v()
-
-    pdb.set_trace()
+    fp = open('word_vec_ave.pickle','wb')
+    pk.dump(w2v.word_vec_ave,fp)
+    fp.close()
