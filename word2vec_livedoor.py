@@ -7,7 +7,10 @@ from gensim.models import word2vec
 import logging
 import os
 import xml.etree.ElementTree as ET
-import pickle as pk
+import pickle as pkl
+from sklearn import datasets
+from sklearn.manifold import TSNE
+import matplotlib.pyplot as plt
 
 class livedoor_w2v:
     def __init__(self,file_name,id):
@@ -15,6 +18,7 @@ class livedoor_w2v:
         self.fn_in_txt = [self.make_path(['./livedoor-news-data-txt','{}.txt'.format(file_name[i])]) for i in np.arange(len(file_name))]
         self.fn_out = [self.make_path(['./livedoor-news-data-wakati','{}.xml'.format(file_name[i])]) for i in np.arange(len(file_name))]
         self.fn_model = self.make_path(['./livedoor-news-data-model','word2vec.model'])
+        self.fn_pkl = [self.make_path(['./livedoor-news-pkl','{}.pickle'.format(file_name[i])]) for i in np.arange(len(file_name))]
         self.id = id
 
     def wakati(self,file_name_in,file_name_out):#分かち書きに変換して保存する
@@ -40,7 +44,7 @@ class livedoor_w2v:
         model = word2vec.Word2Vec(sentences,sg = 1,size = 100,min_count = 1,window = 10,hs = 1,negative = 0)
         model.save(self.fn_model)
 
-    def mean_w2v(self):#すべての単語についてベクトルを出力し、平均を求める
+    def mean_w2v_dic(self):#すべての単語についてベクトルを出力し、平均を求める
         model = word2vec.Word2Vec.load(self.fn_model)
         word_vec = np.array([model.wv[self.dic[0]]])
         for i in np.arange(1,len(self.dic)):
@@ -53,6 +57,34 @@ class livedoor_w2v:
         self.word_vec_ave = np.mean(word_vec,axis=0)
         
         #self.word_vec = np.mean(np.array([model.wv[word] for word in self.dic]),axis=0)
+
+    def mean_w2v(self,fname):#渡されたファイルの中にあるすべての単語についてベクトルを出力し、平均を求める
+        number_count = 0
+        model = word2vec.Word2Vec.load(self.fn_model)
+        fp = open(fname,'r')
+        word_strList = fp.read().split('\n')
+        vec_aveList = np.array([])
+        for x in word_strList:
+            if x == '':
+                continue
+            word_vec = np.array([])
+            word_list = x.split(' ')
+            for word in word_list:
+                try:
+                    if word_vec.shape[0] == 0:
+                        word_vec = model.wv[word]
+                    else:
+                        word_vec = np.vstack([word_vec,model.wv[word]])
+                except:
+                    print('word_vec_ERROR! errorWord : {}'.format(word))
+                    continue
+
+            if vec_aveList.shape[0] == 0:
+                vec_aveList = np.mean(word_vec,axis = 0)
+            else:
+                vec_aveList = np.vstack([vec_aveList,np.mean(word_vec,axis = 0).reshape(1,100)])
+
+        return vec_aveList
 
     def make_path(self,path):#パスの作成(引数pathリストに入っているものを接続する)
         if not os.path.exists(path[0]):
@@ -156,7 +188,10 @@ if __name__ =="__main__":
     if train_flag:
         w2v.w2v_train()
 
-    w2v.mean_w2v()
-    fp = open('word_vec_ave.pickle','wb')
-    pk.dump(w2v.word_vec_ave,fp)
-    fp.close()
+    for i in np.arange(w2v.id):
+        vec_ave = w2v.mean_w2v(w2v.fn_out[i])
+        fp = open(w2v.fn_pkl[i],'wb')
+        pkl.dump(vec_ave,fp)
+        fp.close()
+    #pk.dump(w2v.word_vec_ave,fp)
+    #fp.close()
