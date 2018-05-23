@@ -3,7 +3,7 @@
 ### Basic Installation
 
 #### Mecab
-https://qiita.com/grachro/items/4fbc9bf8174c5abb7bdd
+http://hirotaka-hachiya.hatenablog.com/entry/2017/10/05/130026
 
 #### word2vec
 1. pip install gensim
