@@ -31,6 +31,7 @@ Please refer to http://hirotaka-hachiya.hatenablog.com/entry/2017/10/05/130026
 
 ### 使い方
 上記のインストールが完了した状態で、以下のようにword2vec_livedoor.pyを実行します。 
+
 python word2vec_livedoor.py T F T
 
 word2vec_livedoor.pyの引数は、
