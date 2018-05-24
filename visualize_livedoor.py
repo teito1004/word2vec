@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import matplotlib.pyplot as plt
 from sklearn import datasets
 from sklearn.manifold import TSNE
@@ -38,7 +39,6 @@ for fInd in np.arange(len(fn)):
 X2d = TSNE(n_components=2, random_state=0).fit_transform(X)
 
 plt.scatter(X2d[:, 0], X2d[:, 1], c=Y)
-plt.colormap(sky)
 plt.colorbar()
 plt.savefig('t-sne.png')
 plt.show()
