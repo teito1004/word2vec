@@ -35,9 +35,9 @@ Please refer to http://hirotaka-hachiya.hatenablog.com/entry/2017/10/05/130026
 python word2vec_livedoor.py T F T
 
 word2vec_livedoor.pyの引数は、
-* XXXX
-* YYYY
-* ZZZZ
+* 記事データへの処理を行うフラグ
+* 辞書データの作成・更新を行うフラグ
+* word2vecモデルの学習を行うフラグ
 となっています。
 
 ### 各ニュースカテゴリに対する処理（方式１の場合）の説明
