@@ -16,7 +16,8 @@
 ### インストール方法
 
 #### Mecab
-Please refer to http://hirotaka-hachiya.hatenablog.com/entry/2017/10/05/130026
+以下を参照して、インストールします。
+http://hirotaka-hachiya.hatenablog.com/entry/2017/10/05/130026
 
 #### word2vec
 1. pip install gensim
