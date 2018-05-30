@@ -31,6 +31,10 @@ class livedoor_w2v:
             word = tagger.parse(line).split('\n')
             result = [x.split('\t')[0] for x in word]
             for x in result:
+                if '　' in x:
+                    x = x.replace('　','_')
+                if ' ' in x:
+                    x = x.replace(' ','_')
                 fo.write(x + ' ')
             fo.write('\n')
             line = fi.readline()
@@ -64,8 +68,9 @@ class livedoor_w2v:
         fp = open(fname,'r')
         word_strList = fp.read().split('\n')
         vec_aveList = np.array([])
+        skip_strlist = ['',' ','　']
         for x in word_strList:
-            if x == '':
+            if x in skip_strlist:
                 continue
             word_vec = np.array([])
             word_list = x.split(' ')
@@ -135,6 +140,7 @@ class livedoor_w2v:
             for x in buf:
                 mor = mecab.parse(x).split('\n')
                 for w in mor:
+                    pdb.set_trace()
                     if word == []:
                         word = list(w.split('\t')[0])
                     else:
