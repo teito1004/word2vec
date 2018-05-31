@@ -237,3 +237,4 @@ if __name__ =="__main__":
     elif result_process == 'tfidf':
         w2v.mean_w2v_tfidf(myData.fn_tfidf)
                         
+
