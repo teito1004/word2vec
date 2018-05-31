@@ -36,6 +36,7 @@ class livedoor_w2v:
                     x = x.replace('　','_')
                 if ' ' in x:
                     x = x.replace(' ','_')
+
                 fo.write(x + ' ')
             fo.write('\n')
             line = fi.readline()
@@ -49,24 +50,28 @@ class livedoor_w2v:
         model = word2vec.Word2Vec(sentences,sg = 1,size = 100,min_count = 1,window = 10,hs = 1,negative = 0)
         model.save(self.fn_model)
 
-    def mean_w2v(self,fname):#渡されたファイルの中にあるすべての単語についてベクトルを出力し、平均を求める
+    def mean_w2v(self,fname,dic_file):#渡されたファイルの中にあるすべての単語についてベクトルを出力し、平均を求める
         number_count = 0
         model = word2vec.Word2Vec.load(self.fn_model)
         fp = open(fname,'r')
         word_strList = fp.read().split('\n')
         vec_aveList = np.array([])
-        skip_strlist = ['',' ','　']
+        idf_table = pb.read_csv(dic_file,index_col = 0)
         for x in word_strList:
-            if x in skip_strlist:
+            if x == '':
                 continue
             word_vec = np.array([])
             word_list = x.split(' ')
             for word in word_list:
                 try:
+                    tf = len(word_list)/word_list.count(word)
+                    idf = idf_table.at[word,'idf'].values
+                    tf_idf = tf*idf
                     if word_vec.shape[0] == 0:
-                        word_vec = model.wv[word]
+                        word_vec = model.wv[word]*tf_idf
                     else:
-                        word_vec = np.vstack([word_vec,model.wv[word]])
+                        word_vec = np.vstack([word_vec,model.wv[word]*tf_idf])
+
                 except:
                     print('word_vec_ERROR! errorWord : {}'.format(word))
                     continue
@@ -113,7 +118,7 @@ class livedoor_w2v:
         if not os.path.isfile(dic_file):
             dic = []
         else:#作られて居たならば中身を読み込む
-            dic = list(pd.read_csv(dic_file,header=None)[0].values)
+            dic = list(pd.read_csv(dic_file)['word'].values)
 
         #idf値に必要なものの宣言
         sentence_cnt = 0
@@ -134,7 +139,7 @@ class livedoor_w2v:
                 for w in mor_list:
                     if w in skip_strList:
                         continue
-                    if not w in dic:
+                    if w in dic:
                         dic.append(w)
                         word_allcnt = np.append(word_allcnt,np.array([1]))
                         word_sentence_cnt = np.append(word_sentence_cnt,np.array([1]))
@@ -142,12 +147,9 @@ class livedoor_w2v:
                         word_allcnt[np.where(np.array(dic) == w)[0]]+= mor.count(w)
                         word_sentence_cnt[np.where(np.array(dic) == w)[0]]+=1
             f_in.close()
-        pdb.set_trace()
         idf = np.log(sentence_cnt)-np.log(word_sentence_cnt)+1
         df = pd.DataFrame(np.hstack([np.array(dic).reshape(-1,1),word_allcnt.reshape(-1,1),word_sentence_cnt.reshape(-1,1),idf.reshape(-1,1)]),columns = ['word','word_cnt_all','word_cnt_sentence','idf'])
-        pdb.set_trace()
         df.to_csv(dic_file)
-
 
 if __name__ =="__main__":
     Data_flag = (sys.argv[1]=='T')
@@ -177,7 +179,7 @@ if __name__ =="__main__":
         w2v.w2v_train()
 
     for i in np.arange(w2v.id):
-        vec_ave = w2v.mean_w2v(w2v.fn_out[i])
+        vec_ave = w2v.mean_w2v(w2v.fn_out[i],dic_path)
         fp = open(w2v.fn_pkl[i],'wb')
         pkl.dump(vec_ave,fp)
         fp.close()
