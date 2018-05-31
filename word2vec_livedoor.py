@@ -128,10 +128,10 @@ class word2vec_livedoor:
         for i in np.arange(len(self.datapath)):
             fp = open(self.datapath[i],'r')
             sentenceList = fp.read().split('\n')
+            vec_aveList = np.array([])
             for sentence in sentenceList:
                 word_strList = sentence.split(' ')
                 word_vec = np.array([])
-                vec_aveList = np.array([])
                 for word in word_strList:
                     if word == '':
                         continue
@@ -144,28 +144,28 @@ class word2vec_livedoor:
                         print('word_vec_ERROR! errorWord : {}'.format(word))
                         continue
 
-            if vec_aveList.shape[0] == 0:
-                vec_aveList = np.mean(word_vec,axis = 0)
-            else:
-                vec_aveList = np.vstack([vec_aveList,np.mean(word_vec,axis = 0).reshape(1,100)])
+                if word_vec.shape[0]==0:
+                    continue
+
+                if vec_aveList.shape[0] == 0:
+                    vec_aveList = np.mean(word_vec,axis = 0)
+                else:
+                    vec_aveList = np.vstack([vec_aveList,np.mean(word_vec,axis = 0)])
 
             fout = open(outpath[i],'wb')
             pkl.dump(vec_aveList,fout)
             fout.close()
 
     def mean_w2v_tfidf(self,outpath):#渡されたファイルの中にあるすべての単語についてベクトルを出力したものにTFIDFを適応し、平均を求める
-        pdb.set_trace()
         model = word2vec.Word2Vec.load(self.modelpath)
         for i in np.arange(len(self.datapath)):
             fp = open(self.datapath[i],'r')
             sentenceList = fp.read().split('\n')
+            vec_aveList = np.array([])
             for sentence in sentenceList:
                 word_strList = sentence.split(' ')
                 word_vec = np.array([])
-                vec_aveList = np.array([])
                 for word in word_strList:
-                    if word == '':
-                        continue
                     try:
                         tf = word_strList.count(word)/len(word_strList)
                         idf = self.dictTable.at[word,'idf']
@@ -178,10 +178,13 @@ class word2vec_livedoor:
                         print('word_vec_ERROR! errorWord : {}'.format(word))
                         continue
 
-            if vec_aveList.shape[0] == 0:
-                vec_aveList = np.mean(word_vec,axis = 0)
-            else:
-                vec_aveList = np.vstack([vec_aveList,np.mean(word_vec,axis = 0).reshape(1,100)])
+                if word_vec.shape[0]==0:
+                    continue
+
+                if vec_aveList.shape[0] == 0:
+                    vec_aveList = np.mean(word_vec,axis = 0)
+                else:
+                    vec_aveList = np.vstack([vec_aveList,np.mean(word_vec,axis = 0)])
 
             fout = open(outpath[i],'wb')
             pkl.dump(vec_aveList,fout)
@@ -233,3 +236,4 @@ if __name__ =="__main__":
 
     elif result_process == 'tfidf':
         w2v.mean_w2v_tfidf(myData.fn_tfidf)
+                        
