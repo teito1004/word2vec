@@ -60,10 +60,8 @@ class makeData:
             word = tagger.parse(line).split('\n')
             result = [x.split('\t')[0] for x in word]
             for x in result:
-                if '　' in x:
-                    x = x.replace('　','_')
                 if ' ' in x:
-                    x = x.replace(' ','_')
+                    x = x.replace(' ','-')
 
                 fo.write(x + ' ')
             fo.write('\n')
@@ -116,7 +114,7 @@ class makeData:
 class word2vec_livedoor:
     def __init__(self,datapath,modelpath,dictpath):
         self.datapath = datapath
-        self.modelpath = trainpath
+        self.modelpath = modelpath
         self.dictTable = pd.read_csv(dictpath,index_col = 0)
 
     def w2v_train(self):#word2vecを学習する
@@ -127,7 +125,7 @@ class word2vec_livedoor:
 
     def mean_w2v(self,outpath):#渡されたファイルの中にあるすべての単語についてベクトルを出力し、平均を求める
         model = word2vec.Word2Vec.load(self.modelpath)
-        for i in len(self.datapath):
+        for i in np.arange(len(self.datapath)):
             fp = open(self.datapath[i],'r')
             word_strList = fp.readline().split(' ')
             word_vec = np.array([])
@@ -154,26 +152,29 @@ class word2vec_livedoor:
             fout.close()
 
     def mean_w2v_tfidf(self,outpath):#渡されたファイルの中にあるすべての単語についてベクトルを出力したものにTFIDFを適応し、平均を求める
+        pdb.set_trace()
         model = word2vec.Word2Vec.load(self.modelpath)
-        for i in len(self.datapath):
+        for i in np.arange(len(self.datapath)):
             fp = open(self.datapath[i],'r')
-            word_strList = fp.readline().split(' ')
-            word_vec = np.array([])
-            vec_aveList = np.array([])
-            for word in word_strList:
-                if word == '':
-                    continue
-                try:
-                    tf = len(word_list)/word_list.count(word)
-                    idf = self.dictTable.at[word,'idf'].values
-                    tf_idf = tf*idf
-                    if word_vec.shape[0] == 0:
-                        word_vec = model.wv[word]*tf_idf
-                    else:
-                        word_vec = np.vstack([word_vec,model.wv[word]*tf_idf])
-                except:
-                    print('word_vec_ERROR! errorWord : {}'.format(word))
-                    continue
+            sentenceList = fp.read().split('\n')
+            for sentence in sentenceList:
+                word_strList = sentence.split(' ')
+                word_vec = np.array([])
+                vec_aveList = np.array([])
+                for word in word_strList:
+                    if word == '':
+                        continue
+                    try:
+                        tf = len(word_list)/word_list.count(word)
+                        idf = self.dictTable.at[word,'idf'].values
+                        tf_idf = tf*idf
+                        if word_vec.shape[0] == 0:
+                            word_vec = model.wv[word]*tf_idf
+                        else:
+                            word_vec = np.vstack([word_vec,model.wv[word]*tf_idf])
+                    except:
+                        print('word_vec_ERROR! errorWord : {}'.format(word))
+                        continue
 
             if vec_aveList.shape[0] == 0:
                 vec_aveList = np.mean(word_vec,axis = 0)
@@ -187,7 +188,7 @@ class word2vec_livedoor:
 if __name__ =="__main__":
     argvs = sys.argv
     arg_length = len(argvs)
-    if arg_length < 4 OR arg_length > 6:
+    if arg_length < 4 or arg_length > 6:
         print("コマンドライン引数の数が合いません。終了します。")
         quit()
 
@@ -221,8 +222,6 @@ if __name__ =="__main__":
 
     if dict_flag:
         myData.make_dic(myData.fn_out,dic_path)
-
-    pdb.set_trace()
 
     if model_flag:
         w2v.w2v_train()
