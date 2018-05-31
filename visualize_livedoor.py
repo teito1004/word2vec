@@ -7,7 +7,7 @@ import pdb
 import pickle
 import numpy as np
 
-dataPath = 'livedoor-news-pkl'
+dataPath = 'livedoor-news-data-pkl/tfidf'
     
 # ファイル名（カテゴリに対応）をまとめているテキストからファイル名を読み出す
 f = open('file_name.txt','r')
@@ -25,6 +25,7 @@ for fInd in np.arange(len(fn)):
 	print(fullDataPath)
 
 	with open(fullDataPath,'rb') as fp:
+		pdb.set_trace()
 		tmpX = pickle.load(fp)
 		tmpY = np.ones(tmpX.shape[0])*fInd
 
