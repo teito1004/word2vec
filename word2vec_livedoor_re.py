@@ -18,8 +18,8 @@ class makeData:
         self.fn_in_txt = [self.make_path(['./livedoor-news-data-txt','{}.txt'.format(file_name[i])]) for i in np.arange(len(file_name))]
         self.fn_out = [self.make_path(['./livedoor-news-data-wakati','{}.xml'.format(file_name[i])]) for i in np.arange(len(file_name))]
         self.fn_model = self.make_path(['./livedoor-news-data-model','word2vec.model'])
-        self.fn_w2v = [self.make_path(['./livedoor-news-data-pkl/w2v','{}.pickle'.format(file_name[i])]) for i in np.arange(len(file_name))]
-        self.fn_tfidf = [self.make_path(['./livedoor-news-data-pkl/tfidf','{}.pickle'.format(file_name[i])]) for i in np.arange(len(file_name))]
+        self.fn_w2v = [self.make_path(['./livedoor-news-data-pkl','w2v','{}.pickle'.format(file_name[i])]) for i in np.arange(len(file_name))]
+        self.fn_tfidf = [self.make_path(['./livedoor-news-data-pkl','tfidf','{}.pickle'.format(file_name[i])]) for i in np.arange(len(file_name))]
         self.id = id
 
     def make_path(self,path):#パスの作成(引数pathリストに入っているものを接続する)
@@ -61,7 +61,7 @@ class makeData:
             result = [x.split('\t')[0] for x in word]
             for x in result:
                 if ' ' in x:
-                    x = x.replace(' ','-')
+                    x = x.replace(' ','_')
 
                 fo.write(x + ' ')
             fo.write('\n')
@@ -127,20 +127,22 @@ class word2vec_livedoor:
         model = word2vec.Word2Vec.load(self.modelpath)
         for i in np.arange(len(self.datapath)):
             fp = open(self.datapath[i],'r')
-            word_strList = fp.readline().split(' ')
-            word_vec = np.array([])
-            vec_aveList = np.array([])
-            for word in word_strList:
-                if word == '':
-                    continue
-                try:
-                    if word_vec.shape[0] == 0:
-                        word_vec = model.wv[word]
-                    else:
-                        word_vec = np.vstack([word_vec,model.wv[word]])
-                except:
-                    print('word_vec_ERROR! errorWord : {}'.format(word))
-                    continue
+            sentenceList = fp.read().split('\n')
+            for sentence in sentenceList:
+                word_strList = sentence.split(' ')
+                word_vec = np.array([])
+                vec_aveList = np.array([])
+                for word in word_strList:
+                    if word == '':
+                        continue
+                    try:
+                        if word_vec.shape[0] == 0:
+                            word_vec = model.wv[word]
+                        else:
+                            word_vec = np.vstack([word_vec,model.wv[word]])
+                    except:
+                        print('word_vec_ERROR! errorWord : {}'.format(word))
+                        continue
 
             if vec_aveList.shape[0] == 0:
                 vec_aveList = np.mean(word_vec,axis = 0)
@@ -165,8 +167,8 @@ class word2vec_livedoor:
                     if word == '':
                         continue
                     try:
-                        tf = len(word_list)/word_list.count(word)
-                        idf = self.dictTable.at[word,'idf'].values
+                        tf = word_strList.count(word)/len(word_strList)
+                        idf = self.dictTable.at[word,'idf']
                         tf_idf = tf*idf
                         if word_vec.shape[0] == 0:
                             word_vec = model.wv[word]*tf_idf

@@ -56,6 +56,7 @@ class livedoor_w2v:
         word_strList = fp.read().split('\n')
         vec_aveList = np.array([])
         skip_strlist = ['',' ','　']
+        idf_table = pd.read_csv('./data/dict.csv',index_col = 0)
         for x in word_strList:
             if x in skip_strlist:
                 continue
@@ -63,15 +64,18 @@ class livedoor_w2v:
             word_list = x.split(' ')
             for word in word_list:
                 try:
+                    tf = len(word_list)/word_list.count(word)
+                    idf = idf_table.at[word,'idf'].values
+                    tf_idf = tf*idf
                     if word_vec.shape[0] == 0:
-                        word_vec = model.wv[word]
+                        word_vec = model.wv[word]*tf_idf
                     else:
-                        word_vec = np.vstack([word_vec,model.wv[word]])
+                        word_vec = np.vstack([word_vec,model.wv[word]*tf_idf])
                 except:
                     print('word_vec_ERROR! errorWord : {}'.format(word))
                     continue
-
-            if vec_aveList.shape[0] == 0:
+            pdb.set_trace()
+            if vec_aveList == np.array([]):
                 vec_aveList = np.mean(word_vec,axis = 0)
             else:
                 vec_aveList = np.vstack([vec_aveList,np.mean(word_vec,axis = 0).reshape(1,100)])
