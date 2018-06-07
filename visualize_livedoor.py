@@ -6,8 +6,20 @@ import os
 import pdb
 import pickle
 import numpy as np
+from matplotlib import colors
 
-dataPath = 'livedoor-news-data-pkl/tfidf'
+# select method
+method = 2
+
+if method == 1:
+	dataPath = 'livedoor-news-data-pkl/w2v'
+	imgName = 'w2v.png'
+	
+elif method == 2:
+	dataPath = 'livedoor-news-data-pkl/tfidf'
+	imgName = 'tfidf.png'
+
+
     
 # ファイル名（カテゴリに対応）をまとめているテキストからファイル名を読み出す
 f = open('file_name.txt','r')
@@ -15,7 +27,7 @@ f = open('file_name.txt','r')
 lines = f.readlines()
 fn = [line.strip() for line in lines]
 
-
+                               
 # 各カテゴリのファイルごとにpickleファイルから特徴量を読み込み、XとYに格納
 # X：特徴量
 # Y: カテゴリID
@@ -25,7 +37,6 @@ for fInd in np.arange(len(fn)):
 	print(fullDataPath)
 
 	with open(fullDataPath,'rb') as fp:
-		pdb.set_trace()
 		tmpX = pickle.load(fp)
 		tmpY = np.ones(tmpX.shape[0])*fInd
 
@@ -37,10 +48,17 @@ for fInd in np.arange(len(fn)):
 			X = np.vstack([X,tmpX])
 			Y = np.hstack([Y,tmpY])
 
+# T-SNE
 X2d = TSNE(n_components=2, random_state=0).fit_transform(X)
 
-plt.scatter(X2d[:, 0], X2d[:, 1], c=Y)
+# colormap
+lcmap = colors.ListedColormap(['#000000', '#FF99FF', '#8000FF',
+                               '#0000FF', '#0080FF', '#58FAF4',
+                               '#00FF00', '#FFFF00', '#FF8000',
+                               '#FF0000'])
+
+plt.scatter(X2d[:, 0], X2d[:, 1], c=Y+1, cmap=lcmap)
 plt.colorbar()
-plt.savefig('t-sne.png')
+plt.savefig(imgName)
 plt.show()
 
