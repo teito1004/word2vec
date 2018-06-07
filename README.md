@@ -52,7 +52,7 @@ word2vec_livedoor.pyの引数は、
 1. livedoor-news-dataからxmlの記事データを読み込む。
 2. titleとbodyアイテムの値を抽出したテキストデータを、記事ごとに１行ずつlivedoor-news-data-txtに書き出す。
 3. テキストデータにMecabで形態素解析し、形態素ごとに半角スペースで区切った形態素データをlivedoor-news-wakatiに書き出す。
-4. livedoor-news-wakatiから形態素ごとに'形態素','全記事での出現回数','出現した文章の数','idf値'のデータフレームを作成、dataにcsv形式で書き出す。
+4. 形態素ごとに'形態素','全記事での出現回数','出現した文章の数','idf値'のデータフレームを作成、dataにcsv形式で書き出す。
 5. 形態素データに対し、tf値を求める。同時にword2vecをかけて、形態素ごとのベクトル（100次元）にTF-IDF値をかけ合わせたものを記事ごとに平均したものをlivedoor-news-pklに書き出す。つまり、pklには、記事の数 X 100次元の行列が保存される。
 
 ### To Do
