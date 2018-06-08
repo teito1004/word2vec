@@ -99,7 +99,7 @@ class makeData:
                 for w in mor_list:
                     if w in skip_strList:
                         continue
-                    if w in dic:
+                    if not w in dic:
                         dic.append(w)
                         word_allcnt = np.append(word_allcnt,np.array([1]))
                         word_sentence_cnt = np.append(word_sentence_cnt,np.array([1]))
@@ -109,13 +109,13 @@ class makeData:
             f_in.close()
         idf = np.log(sentence_cnt)-np.log(word_sentence_cnt)+1
         df = pd.DataFrame(np.hstack([np.array(dic).reshape(-1,1),word_allcnt.reshape(-1,1),word_sentence_cnt.reshape(-1,1),idf.reshape(-1,1)]),columns = ['word','word_cnt_all','word_cnt_sentence','idf'])
-        df.to_csv(dic_file)
+        df.to_csv(dic_file,index=False)
 
 class word2vec_livedoor:
     def __init__(self,datapath,modelpath,dictpath):
         self.datapath = datapath
         self.modelpath = modelpath
-        self.dictTable = pd.read_csv(dictpath,index_col = 0)
+        self.dictTable = pd.read_csv(dictpath,index_col = 'word')
 
     def w2v_train(self):#word2vecを学習する
         logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s',level = logging.INFO)
@@ -217,7 +217,6 @@ if __name__ =="__main__":
     dic_path = './data/dict.csv'
     #オブジェクト作成
     myData = makeData(fn,len(fn))
-    w2v = word2vec_livedoor(myData.fn_out,myData.fn_model,dic_path)
     if Data_flag:
         for i in np.arange(myData.id):
             print("inputfile:{}".format(myData.fn_in[i]))
@@ -227,6 +226,8 @@ if __name__ =="__main__":
 
     if dict_flag:
         myData.make_dic(myData.fn_out,dic_path)
+
+    w2v = word2vec_livedoor(myData.fn_out,myData.fn_model,dic_path)
 
     if model_flag:
         w2v.w2v_train()
