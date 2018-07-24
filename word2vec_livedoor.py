@@ -109,7 +109,7 @@ class makeData:
             f_in.close()
         idf = np.log(sentence_cnt)-np.log(word_sentence_cnt)+1
         df = pd.DataFrame(np.hstack([np.array(dic).reshape(-1,1),word_allcnt.reshape(-1,1),word_sentence_cnt.reshape(-1,1),idf.reshape(-1,1)]),columns = ['word','word_cnt_all','word_cnt_sentence','idf'])
-        df.to_csv(dic_file,index=False)
+        df.to_csv(dic_file)
 
 class word2vec_livedoor:
     def __init__(self,datapath,modelpath,dictpath):
