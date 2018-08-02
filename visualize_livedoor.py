@@ -9,7 +9,7 @@ import numpy as np
 from matplotlib import colors
 
 # select method
-method = 2
+method = 1
 
 if method == 1:
 	dataPath = 'livedoor-news-data-pkl/w2v'
@@ -18,7 +18,7 @@ if method == 1:
 
 elif method == 2:
 	dataPath = 'livedoor-news-data-pkl/tfidf'
-	savedataPath. = 'livedoor-news-data-TSNE/tfidf'
+	savedataPath = 'livedoor-news-data-TSNE/tfidf'
 	imgName = 'tfidf.png'
 
 

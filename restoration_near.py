@@ -12,8 +12,12 @@ ite = 10000
 src_vec_length = 2
 hidden_unit_num = 200
 tar_vec_length = 100
-method = 1 #1:w2v,2:tfidf
+method = 1	#1:w2v,2:tfidf
 train_per = 0.8
+
+dist_mode = 1
+dist_fname = 'distance.pkl'
+nNearData = 50
 
 #===========================
 # レイヤーの関数
@@ -26,7 +30,7 @@ def fc_relu(inputs, w, b):
 # fc layer
 def fc(inputs, w, b):
 	fc = tf.matmul(inputs, w) + b
-	return fc
+	return fc	
 
 def weight_variable(name,shape):
     return tf.get_variable(name,shape,initializer=tf.random_normal_initializer(stddev=0.1))
@@ -41,7 +45,7 @@ input_data = tf.placeholder(shape=(None,None),dtype = tf.float32,name='input_dat
 target_data = tf.placeholder(shape=(None,None),dtype = tf.float32,name='target_data')
 
 # 線形回帰で必要なW,Bを作成
-W1 = weight_variable('weight1',[src_vec_length,hidden_unit_num])
+W1 = weight_variable('weight1',[src_vec_length*nNearData,hidden_unit_num])
 B1 = weight_variable('bias1',[hidden_unit_num])
 W2 = weight_variable('weight2',[hidden_unit_num,hidden_unit_num])
 B2 = weight_variable('bias2',[hidden_unit_num])
@@ -82,12 +86,33 @@ elif method == 2:
 # T-SNEで２次元に削減したデータと正解ラベルのペアをpickleファイルから読み込む
 with open(src_dataPath,'rb') as fp:
 	src_data = pkl.load(fp)
-	src_label = pkl.load(fp)
+
+#---------
+# T-SNE2点間の距離の計算
+if dist_mode == 1:
+	# データ点間距離の計算
+	src_data1=np.tile(src_data,(src_data.shape[0],1,1))
+	src_data2 = np.transpose(src_data1,[1,0,2])
+	src_dist = np.sum(np.square(src_data1-src_data2),axis=2)
+	
+	with open(dist_fname,'wb') as fp:
+		pkl.dump(src_dist,fp)
+			
+elif dist_mode == 2:
+	with open(dist_fname,'rb') as fp:
+		src_dist = pkl.load(fp)
+#---------
+
+#---------
+# nNearData近傍のデータを集めて一つのベクトルにする
+nearInds = np.argsort(src_dist,axis=1)[:,:nNearData]
+src_data_near = np.reshape(src_data[nearInds,:],[-1,src_vec_length * nNearData])
+#---------
 
 # train用、test用で分割する。
-randInd_all = np.random.permutation(src_data.shape[0])
-src_train_data = src_data[randInd_all[:int(src_data.shape[0]*train_per)]]
-src_test_data = src_data[randInd_all[int(src_data.shape[0]*train_per):]]
+randInd_all = np.random.permutation(src_data_near.shape[0])
+src_train_data = src_data_near[randInd_all[:int(src_data_near.shape[0]*train_per)]]
+src_test_data = src_data_near[randInd_all[int(src_data_near.shape[0]*train_per):]]
 randInd_train = np.random.permutation(src_train_data.shape[0])
 #===========================
 
@@ -113,11 +138,24 @@ for fInd in np.arange(len(fn)):
 		else:
 			tar_data = np.vstack([tar_data,tmpX])
 			tar_label = np.hstack([tar_label,tmpY])
-			
+
+#---------
+# word2vec特徴量2点間の距離の計算
+if dist_mode == 3:
+	# データ点間距離の計算
+	tar_data1=np.tile(tar_data,(tar_data.shape[0],1,1))
+	tar_data2 = np.transpose(tar_data1,[1,0,2])
+	tar_dist = np.sum(np.square(tar_data1-tar_data2),axis=2)
+	
+	with open(dist_fname,'wb') as fp:
+		pkl.dump(src_dist,fp)
+		pkl.dump(tar_dist,fp)
+#---------
 
 # train用、test用で分割する。
 # 標準偏差が1になるように正規化
 tar_data = tar_data/np.tile(np.std(tar_data,axis=0),[tar_data.shape[0],1])
+
 tar_train_data = tar_data[randInd_all[:int(tar_data.shape[0]*train_per)]]
 tar_test_data = tar_data[randInd_all[int(tar_data.shape[0]*train_per):]]
 #===========================
@@ -148,7 +186,7 @@ saver=tf.train.Saver()
 # 学習の開始
 for step in np.arange(ite+1):
     fd,train_count,randInd_train = next_batch_train(train_count,randInd_train)
-    _, step_loss = sess.run([train_optimaizer,loss],feed_dict=fd)
+    _, step_loss = sess.run([train_optimaizer, loss],feed_dict=fd)
     if step%1 == 0:
         print('step:{},loss:{}'.format(step,str(step_loss)))
         saver.save(sess,'restration_model/model.ckpt',global_step=step)
