@@ -3,8 +3,7 @@ import pdb
 import numpy as np
 import pickle
 
-with open('jawiki.txt','rt') as fp:
-#with open('data.txt','rt') as fp:
+with open('jawiki_json.txt','rt') as fp:
 	jawiki = fp.readlines()
 
 
