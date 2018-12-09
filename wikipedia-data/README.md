@@ -18,6 +18,7 @@ http://ankaji92.hatenablog.com/entry/2016/11/27/212507
 これにより、title_text.pklが生成される。
 
 ## title_text.pklの使い方
+```python
 >python
 >>> import pickle 
 >>> fp = open('title_text.pkl','rb') 
@@ -26,4 +27,4 @@ http://ankaji92.hatenablog.com/entry/2016/11/27/212507
 >>> title.index('徳川家康') # タイトルが徳川家康のindex 
 3116 
 >>> text[title.index('徳川家康')] # 徳川家康のtext 
-
+```
