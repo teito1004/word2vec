@@ -19,11 +19,11 @@ http://ankaji92.hatenablog.com/entry/2016/11/27/212507
 
 ## title_text.pklの使い方
 >python
->>> import pickle
->>> fp = open('title_text.pkl','rb')
->>> title = pickle.load(fp)
->>> text = pickle.load(fp)
->>> title.index('徳川家康') # タイトルが徳川家康のindex
-3116
->>> text[title.index('徳川家康')] # 徳川家康のtext
+>>> import pickle 
+>>> fp = open('title_text.pkl','rb') 
+>>> title = pickle.load(fp) 
+>>> text = pickle.load(fp) 
+>>> title.index('徳川家康') # タイトルが徳川家康のindex 
+3116 
+>>> text[title.index('徳川家康')] # 徳川家康のtext 
 
