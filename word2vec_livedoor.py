@@ -58,7 +58,12 @@ class makeData:
         line = fi.readline()
         while line:
             word = tagger.parse(line).split('\n')
-            result = [x.split('\t')[0] for x in word]
+            result = []
+            for x in word:
+                xsplits = x.split('\t')
+                if len(xsplits)>=6 and xsplits[3].find('名詞')>=0:
+                    result.append(xsplits[2])
+
             for x in result:
                 if ' ' in x:
                     x = x.replace(' ','_')
@@ -86,6 +91,7 @@ class makeData:
         word_allcnt = np.zeros(len(dic))
 
         for fn in input_file:
+            print('make dic : {}'.format(fn))
             #xmlを整形して作ったtxtから単語を読み出す
             f_in = open(fn,'r')
             #記事ごとに分割したリストを作成
@@ -210,7 +216,7 @@ if __name__ =="__main__":
         model_flag = (argvs[4]=='T')
 
     #ファイル名をまとめているテキストからファイル名を読み出す
-    f = open('file_name.txt','r')
+    f = open('file_name_4cate.txt','r')
     #ファイル名がすべて接続されて居るので区切り文字を指定してファイル名ごとに分ける
     lines = f.readlines()
     fn = [line.strip() for line in lines]
@@ -226,6 +232,7 @@ if __name__ =="__main__":
 
     if dict_flag:
         myData.make_dic(myData.fn_out,dic_path)
+        #myData.make_dic(['livedoor-news-data-wakati/jawiki-wakati.xml'],dic_path)
 
     w2v = word2vec_livedoor(myData.fn_out,myData.fn_model,dic_path)
 

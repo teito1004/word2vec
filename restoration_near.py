@@ -4,6 +4,7 @@ import tensorflow as tf
 import pandas as pd
 import pickle as pkl
 import os
+from gensim.models import Word2Vec
 
 batch_size = 100
 train_count = 0
@@ -12,10 +13,10 @@ ite = 10000
 src_vec_length = 2
 hidden_unit_num = 200
 tar_vec_length = 100
-method = 1	#1:w2v,2:tfidf
+method = 1 	#1:w2v,2:tfidf
 train_per = 0.8
 
-dist_mode = 1
+dist_mode =2 
 dist_fname = 'distance.pkl'
 nNearData = 50
 
@@ -183,6 +184,8 @@ def next_batch_train(count,Ind):
 #===========================
 # 過程のsave用に必要なクラスを宣言
 saver=tf.train.Saver()
+all_train_loss = np.array([])
+all_test_loss = np.array([])
 # 学習の開始
 for step in np.arange(ite+1):
     fd,train_count,randInd_train = next_batch_train(train_count,randInd_train)
@@ -192,7 +195,9 @@ for step in np.arange(ite+1):
         saver.save(sess,'restration_model/model.ckpt',global_step=step)
 
     if step%100 ==0:
+        all_train_loss = np.append(all_train_loss,step_loss)
         step_loss,predicted = sess.run([loss,fc_out],feed_dict={input_data:src_test_data, target_data: tar_test_data})
+        all_test_loss = np.append(all_test_loss,step_loss)
         print('---------test_sequence---------')
         print('loss:{}'.format(str(step_loss)))
         print('input ->:{}'.format(fd[input_data][0]))
@@ -200,3 +205,42 @@ for step in np.arange(ite+1):
         print('gt ->:{}'.format(str(tar_test_data[0])))
         print('-------------------------------')
 #===========================
+def input_make(x_s,x_e,y_s,y_e):
+    in_ar = np.array([])
+    for i in np.arange(x_s,x_e,1):
+        for j in np.arange(y_s,y_e,1):
+            in_ar = np.append(in_ar,np.array([i,j]))
+    return in_ar
+
+target_point = np.array([input_make(-5,5,50,55),input_make(50,55,-5,5),input_make(-5,5,-55,-50),input_make(-55,-50,-5,5)])
+target_predict = sess.run(fc_out,feed_dict = {input_data:target_point,target_data:np.zeros(shape=(4,100))})
+
+if method == 1:
+    add_name = 'w2v_nearlest'
+else:
+    add_name ='tfidf'
+
+pkl_name = ('target_point_{}.pickle'.format(add_name))
+result_file = ('result_word_{}.txt'.format(add_name))
+result_loss = ('result_loss_{}.pickle'.format(add_name))
+
+with open(result_loss,'wb') as fl:
+    pkl.dump(all_train_loss,fl)
+    pkl.dump(all_test_loss,fl)
+
+with open(pkl_name,'wb') as ft:
+    pkl.dump(target_point,ft)
+    pkl.dump(target_predict,ft)
+
+neighbor_num = 10
+
+model = Word2Vec.load('livedoor-news-data-model/word2vec.model')
+
+with open(result_file,'w') as fv:
+    for vec in target_predict:
+        word_list = [model.most_similar([vec],[],neighbor_num)[i][0] for i in range(neighbor_num)]
+        print(word_list)
+        for word in word_list:
+            fv.write(word + ',')
+        fv.write('\n')
+

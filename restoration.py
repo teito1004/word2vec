@@ -4,6 +4,11 @@ import tensorflow as tf
 import pandas as pd
 import pickle as pkl
 import os
+from gensim.models import Word2Vec
+from sklearn.cluster import KMeans
+import matplotlib as mpl
+mpl.use('Agg')
+import matplotlib.pyplot as plt
 
 batch_size = 100
 train_count = 0
@@ -14,6 +19,7 @@ hidden_unit_num = 200
 tar_vec_length = 100
 method = 1 #1:w2v,2:tfidf
 train_per = 0.8
+nCluster =10 
 
 #===========================
 # レイヤーの関数
@@ -69,8 +75,8 @@ sess.run(tf.global_variables_initializer())
 #===========================
 # 使用する手法ごとにデータパスを作成する。
 if method == 1:
-    src_dataPath = 'livedoor-news-data-TSNE/w2v/data_label.pickle'
-    tar_dataPath = 'livedoor-news-data-pkl/w2v'
+    src_dataPath = 'livedoor-news-data-TSNE/w2v_4cate/data_label.pickle'
+    tar_dataPath = 'livedoor-news-data-pkl/w2v_4cate'
 
 elif method == 2:
     src_dataPath = 'livedoor-news-data-TSNE/tfidf/data_label.pickle'
@@ -95,7 +101,7 @@ randInd_train = np.random.permutation(src_train_data.shape[0])
 #===========================
 # word2vecの100次元のベクトルデータを読み込む
 # ファイル名（カテゴリに対応）をまとめているテキストからファイル名を読み出す
-f = open('file_name.txt','r')
+f = open('file_name_4cate.txt','r')
 # ファイル名がすべて接続されて居るので区切り文字を指定してファイル名ごとに分ける
 lines = f.readlines()
 fn = [line.strip() for line in lines]
@@ -145,6 +151,8 @@ def next_batch_train(count,Ind):
 #===========================
 # 過程のsave用に必要なクラスを宣言
 saver=tf.train.Saver()
+test_loss_all = np.array([])
+train_loss_all = np.array([])
 # 学習の開始
 for step in np.arange(ite+1):
     fd,train_count,randInd_train = next_batch_train(train_count,randInd_train)
@@ -154,11 +162,116 @@ for step in np.arange(ite+1):
         saver.save(sess,'restration_model/model.ckpt',global_step=step)
 
     if step%100 ==0:
+        train_loss_all = np.append(train_loss_all,step_loss)
         step_loss,predicted = sess.run([loss,fc_out],feed_dict={input_data:src_test_data, target_data: tar_test_data})
+        test_loss_all = np.append(test_loss_all,step_loss)
         print('---------test_sequence---------')
         print('loss:{}'.format(str(step_loss)))
         print('input ->:{}'.format(fd[input_data][0]))
         print('predicted ->:{}'.format(str(predicted[0])))
         print('gt ->:{}'.format(str(tar_test_data[0])))
         print('-------------------------------')
+
+neighbor_num = 10
+
+target_point = np.array([[-5,50],[5,50],[50,5],[50,-5],[5,-50],[-5,-50],[-50,-5],[-50,5]])
+target_predict = sess.run(fc_out,feed_dict = {input_data:target_point,target_data:np.zeros(shape=(8,100))})
+model_path = 'livedoor-news-data-model_notwikipedia/word2vec.model'
+model = Word2Vec.load(model_path)
+method_word = 'w2v_nowiki'
+cluster_out_path = 'livedoor-news-data-cluster/analysis_nowiki.pickle'
+
+with open('result_word_{}.txt'.format(method_word),'w') as fv:
+    for vec in target_predict:
+        word_list = [model.most_similar([vec],[],neighbor_num)[i][0] for i in range(neighbor_num)]
+        print(word_list)
+        for word in word_list:
+            fv.write(word+',')
+        fv.write('\n')
+
+with open('result_word_vec_{}.pickle'.format(method_word),'wb') as fw:
+    pkl.dump(target_point,fw)
+    pkl.dump(target_predict,fw)
+
+with open('result_loss_{}.pickle'.format(method_word),'wb') as fw:
+    pkl.dump(train_loss_all,fw)
+    pkl.dump(test_loss_all,fw)
+
+ans_indList = []
+for tp in target_point :
+    mina_array = np.sqrt(np.sum(np.power(src_data-tp[np.newaxis],2),axis=1))
+    ans_ind = []
+    for nnum in np.arange(neighbor_num):
+        ans_ind.append(np.argmin(mina_array))
+        mina_array = np.delete(mina_array,np.argmin(mina_array),axis=0)
+    ans_indList.append(ans_ind)
+
+with open('ans_word.txt','w') as anf:
+    for ans in ans_indList:
+        ans_vec = tar_data[ans]
+        for vec in ans_vec:
+            word = model.most_similar([vec],[],1)[0][0]
+            anf.write(word+',')
+        anf.write('\n')
+        
 #===========================
+#cluster
+
+kmeans = KMeans(n_clusters = nCluster, random_state = 0).fit(src_data)
+
+nSample = 50
+top_similar_words = []
+
+for c in range(nCluster):
+    target_point = np.random.normal(size=[nSample,2])*np.tile(np.std(src_data[kmeans.labels_==c],axis=0)*0.1,[nSample,1])+kmeans.cluster_centers_[c]
+    target_predict = sess.run(fc_out,feed_dict={input_data:target_point,target_data:np.zeros(shape=(nSample,tar_vec_length))})
+    flag = True
+    for s in range(nSample):
+        similar_words = model.wv.similar_by_vector(target_predict[s])
+
+        if flag:
+            similar_words_dict = dict(similar_words)
+            flag = False
+
+        else:
+            for key_score in similar_words:
+                if key_score[0] in similar_words_dict.keys():
+                    similar_words_dict[key_score[0]] += key_score[1]
+                else :
+                    similar_words_dict[key_score[0]] = key_score[1]
+
+    top_similar_words.append([k for k,v in sorted(similar_words_dict.items(),key=lambda x:x[1])[::-1]])
+
+lcmap =['#000000', '#FF99FF', '#8000FF','#0000FF', '#0080FF', '#58FAF4','#00FF00', '#FFFF00', '#FF8000','#FF0000']
+
+fig = plt.figure()
+
+for c in range(nCluster):
+    plt.plot(src_data[kmeans.labels_==c,0],src_data[kmeans.labels_==c,1],'o',markerfacecolor=lcmap[c])
+    plt.text(kmeans.cluster_centers_[c,0],kmeans.cluster_centers_[c,1],str(c),fontsize=15,bbox=dict(facecolor='white',alpha=0.5))
+
+plt.savefig('clustering_word_wiki.png')
+with open('cluster_out_wiki.pickle','wb') as cfp:
+    pkl.dump(top_similar_words,cfp)
+
+
+with open('dict_word_vec.pickle','rb') as fr:
+    dict_word = pkl.load(fr)
+    dict_word_vec = pkl.load(fr)
+    dict_2d = pkl.load(fr)
+
+pdb.set_trace()
+dict_loss,dict_predict = sess.run([loss,fc_out],feed_dict = {input_data:dict_2d,target_data:dict_word_vec})
+with open('dict_word_result.txt','w') as fw:
+    word_num = 0
+    for vec in dict_predict:
+        fw.write('['+dict_word[word_num]+'],')
+        word_list = [model.most_similar([vec],[],neighbor_num)[i][0] for i in range(neighbor_num)]
+        for word in word_list:
+            fw.write(word+',')
+        fw.write('\n')
+        word_num = word_num + 1
+
+with open('dict_word_result.pickle','wb') as fw:
+    pkl.dump(dict_loss,fw)
+    pkl.dump(dict_predict,fw)
